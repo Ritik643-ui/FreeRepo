@@ -1,0 +1,280 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: travelbuddy-postgres-prod
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-travelbuddy}
+      POSTGRES_USER: ${DATABASE_USERNAME:-travelbuddy_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-travelbuddy_password}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./infrastructure/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-travelbuddy_user} -d ${DATABASE_NAME:-travelbuddy}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Redis for Caching and Sessions
+  redis:
+    image: redis:7-alpine
+    container_name: travelbuddy-redis-prod
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_password}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: travelbuddy-backend-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DATABASE_NAME:-travelbuddy}
+      SPRING_DATASOURCE_USERNAME: ${DATABASE_USERNAME:-travelbuddy_user}
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD:-travelbuddy_password}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8080
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://yourdomain.com}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      PAYMENT_GATEWAY_URL: ${PAYMENT_GATEWAY_URL}
+      PAYMENT_API_KEY: ${PAYMENT_API_KEY}
+      SMS_API_URL: ${SMS_API_URL}
+      SMS_API_KEY: ${SMS_API_KEY}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # React Expo Frontend (Web Build)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production-web
+    container_name: travelbuddy-frontend-prod
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8080/api}
+      REACT_APP_ENVIRONMENT: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx Reverse Proxy and Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: travelbuddy-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx-prod.conf:/etc/nginx/nginx.conf
+      - ./infrastructure/nginx/ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Prometheus for Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: travelbuddy-prometheus-prod
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus-prod.yml:/etc/prometheus/prometheus.yml
+      - prometheus_prod_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.external-url=http://localhost:9090'
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: travelbuddy-grafana-prod
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    volumes:
+      - grafana_prod_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infrastructure/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Backup Service
+  backup:
+    image: postgres:15-alpine
+    container_name: travelbuddy-backup-prod
+    environment:
+      PGPASSWORD: ${DATABASE_PASSWORD:-travelbuddy_password}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    command: |
+      sh -c '
+        chmod +x /backup.sh
+        while true; do
+          /backup.sh
+          sleep 86400  # Run daily
+        done
+      '
+    depends_on:
+      - postgres
+    networks:
+      - travelbuddy-prod-network
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  prometheus_prod_data:
+    driver: local
+  grafana_prod_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  travelbuddy-prod-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# Production deployment configurations
+x-deploy-labels: &deploy-labels
+  - "traefik.enable=true"
+  - "traefik.docker.network=travelbuddy-prod-network"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-restart-policy: &restart-policy
+  restart: unless-stopped
+

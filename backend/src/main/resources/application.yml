@@ -1,0 +1,295 @@
+# TravelBuddy Backend Application Configuration
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: travelbuddy-backend
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:development}
+  
+  # Database Configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/travelbuddy}
+    username: ${SPRING_DATASOURCE_USERNAME:travelbuddy_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:travelbuddy_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+  
+  # Mail Configuration
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-jwt-secret-key-change-in-production}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in milliseconds
+
+# Application Specific Configuration
+travelbuddy:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:19006}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+  
+  # File Upload Configuration
+  file:
+    upload:
+      max-size: 10MB
+      allowed-types: image/jpeg,image/png,image/gif,application/pdf
+      storage-path: ${FILE_STORAGE_PATH:./uploads}
+  
+  # Booking Configuration
+  booking:
+    confirmation-timeout: 15 # minutes
+    payment-timeout: 30 # minutes
+    cancellation-window: 24 # hours
+  
+  # External API Configuration
+  external:
+    payment:
+      gateway-url: ${PAYMENT_GATEWAY_URL:}
+      api-key: ${PAYMENT_API_KEY:}
+    
+    notification:
+      sms-api-url: ${SMS_API_URL:}
+      sms-api-key: ${SMS_API_KEY:}
+
+# Logging Configuration
+logging:
+  level:
+    com.travelbuddy: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/travelbuddy.log
+    max-size: 10MB
+    max-history: 30
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+# API Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  info:
+    title: TravelBuddy API
+    description: Comprehensive travel booking platform API
+    version: 1.0.0
+    contact:
+      name: TravelBuddy Team
+      email: support@travelbuddy.com
+    license:
+      name: MIT License
+      url: https://opensource.org/licenses/MIT
+
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+  
+  # Development Database (can use H2 for quick testing)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/travelbuddy
+    username: travelbuddy_user
+    password: travelbuddy_password
+  
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  
+  # Development Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+logging:
+  level:
+    com.travelbuddy: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+travelbuddy:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:19006,http://localhost:8081
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  # Production Database
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+  
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+  
+  # Production Redis
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+# Production Logging
+logging:
+  level:
+    com.travelbuddy: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  file:
+    name: /var/log/travelbuddy/application.log
+
+# Production Security
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 3600000 # 1 hour in production
+
+travelbuddy:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  # Test Database (H2 in-memory)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  # Disable Flyway for tests
+  flyway:
+    enabled: false
+  
+  # Test Redis (embedded)
+  data:
+    redis:
+      host: localhost
+      port: 6370
+
+logging:
+  level:
+    com.travelbuddy: DEBUG
+

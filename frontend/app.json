@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "TravelBuddy",
+    "slug": "travelbuddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.travelbuddy.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to help you find nearby travel options and provide location-based services.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to help you find nearby travel options and provide location-based services.",
+        "NSCameraUsageDescription": "This app uses camera to allow you to take photos for your profile and travel documents.",
+        "NSPhotoLibraryUsageDescription": "This app uses photo library to allow you to select photos for your profile and travel documents."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.travelbuddy.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "TravelBuddy",
+      "shortName": "TravelBuddy",
+      "lang": "en",
+      "scope": "/",
+      "themeColor": "#000000",
+      "description": "Your ultimate travel booking companion",
+      "dir": "auto",
+      "display": "standalone",
+      "orientation": "any",
+      "startUrl": "/",
+      "backgroundColor": "#ffffff"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-location",
+      "expo-image-picker",
+      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "owner": "your-expo-username"
+  }
+}
+
