@@ -1,0 +1,339 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Docker and Registry Configuration
+        DOCKER_REGISTRY = credentials('docker-registry-url')
+        DOCKER_CREDENTIALS = credentials('docker-registry-credentials')
+        
+        // AWS Configuration
+        AWS_REGION = 'us-east-1'
+        AWS_CREDENTIALS = credentials('aws-credentials')
+        EC2_INSTANCE_ID = credentials('ec2-instance-id')
+        EC2_HOST = credentials('ec2-host')
+        EC2_USER = 'ubuntu'
+        
+        // Application Configuration
+        APP_NAME = 'clinic-management'
+        BACKEND_IMAGE = "${DOCKER_REGISTRY}/${APP_NAME}-backend"
+        
+        // Database Configuration
+        DATABASE_URL = credentials('database-url')
+        DATABASE_CREDENTIALS = credentials('database-credentials')
+        
+        // Security Configuration
+        JWT_SECRET = credentials('jwt-secret')
+        
+        // Notification Configuration
+        SLACK_WEBHOOK = credentials('slack-webhook')
+        
+        // Version Configuration
+        BUILD_VERSION = "${env.BUILD_NUMBER}"
+        GIT_COMMIT_SHORT = "${env.GIT_COMMIT[0..7]}"
+    }
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 45, unit: 'MINUTES')
+        timestamps()
+        skipDefaultCheckout()
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Clean workspace and checkout code
+                    cleanWs()
+                    checkout scm
+                    
+                    // Set build display name
+                    currentBuild.displayName = "#${BUILD_VERSION}-${GIT_COMMIT_SHORT}"
+                    currentBuild.description = "Clinic Management System Build"
+                }
+            }
+        }
+        
+        stage('Environment Setup') {
+            steps {
+                script {
+                    // Print environment information
+                    echo "🏥 Building Clinic Management System"
+                    echo "📦 Build Version: ${BUILD_VERSION}"
+                    echo "🔧 Git Commit: ${GIT_COMMIT_SHORT}"
+                    echo "🌍 AWS Region: ${AWS_REGION}"
+                    echo "🐳 Docker Registry: ${DOCKER_REGISTRY}"
+                    
+                    // Verify required tools
+                    sh '''
+                        echo "Verifying build tools..."
+                        java -version
+                        mvn -version
+                        docker --version
+                        aws --version
+                    '''
+                }
+            }
+        }
+        
+        stage('Backend Build & Test') {
+            steps {
+                dir('backend') {
+                    script {
+                        echo "🔨 Building Spring Boot Backend..."
+                        
+                        // Run tests and build
+                        sh '''
+                            echo "Running unit tests..."
+                            mvn clean test -B
+                            
+                            echo "Building application..."
+                            mvn clean package -DskipTests -B
+                            
+                            echo "Generating test reports..."
+                            mvn jacoco:report -B
+                        '''
+                        
+                        // Archive test results
+                        publishTestResults testResultsPattern: 'target/surefire-reports/*.xml'
+                        
+                        // Archive artifacts
+                        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                    }
+                }
+            }
+        }
+        
+        stage('Code Quality & Security') {
+            parallel {
+                stage('Code Quality Analysis') {
+                    steps {
+                        dir('backend') {
+                            script {
+                                echo "📊 Running code quality analysis..."
+                                
+                                // Run code quality checks (if SonarQube is available)
+                                sh '''
+                                    echo "Code quality analysis placeholder"
+                                    # mvn sonar:sonar -Dsonar.projectKey=clinic-management
+                                '''
+                            }
+                        }
+                    }
+                }
+                
+                stage('Security Scan') {
+                    steps {
+                        script {
+                            echo "🔒 Running security scans..."
+                            
+                            // OWASP Dependency Check
+                            sh '''
+                                echo "Security scan placeholder"
+                                # Run OWASP dependency check or other security tools
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Docker Build') {
+            steps {
+                script {
+                    echo "🐳 Building Docker images..."
+                    
+                    // Build backend Docker image
+                    dir('backend') {
+                        sh """
+                            docker build -t ${BACKEND_IMAGE}:${BUILD_VERSION} .
+                            docker build -t ${BACKEND_IMAGE}:latest .
+                            
+                            echo "Docker images built successfully!"
+                            docker images | grep ${APP_NAME}
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Docker Push') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                    branch 'staging'
+                }
+            }
+            steps {
+                script {
+                    echo "📤 Pushing Docker images to registry..."
+                    
+                    // Login to Docker registry
+                    withCredentials([usernamePassword(credentialsId: 'docker-registry-credentials', 
+                                                   usernameVariable: 'DOCKER_USER', 
+                                                   passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo $DOCKER_PASS | docker login $DOCKER_REGISTRY -u $DOCKER_USER --password-stdin
+                        '''
+                    }
+                    
+                    // Push images
+                    sh """
+                        docker push ${BACKEND_IMAGE}:${BUILD_VERSION}
+                        docker push ${BACKEND_IMAGE}:latest
+                        
+                        echo "Images pushed successfully!"
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to AWS EC2') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'staging'
+                }
+            }
+            steps {
+                script {
+                    echo "🚀 Deploying to AWS EC2..."
+                    
+                    // Deploy to EC2 instance
+                    withCredentials([
+                        aws(credentialsId: 'aws-credentials', region: "${AWS_REGION}"),
+                        string(credentialsId: 'ec2-host', variable: 'EC2_HOST'),
+                        sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')
+                    ]) {
+                        sh """
+                            # Create deployment script
+                            cat > deploy.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "🏥 Deploying Clinic Management System..."
+
+# Stop existing containers
+docker stop clinic-backend || true
+docker rm clinic-backend || true
+
+# Pull latest image
+docker pull ${BACKEND_IMAGE}:${BUILD_VERSION}
+
+# Run new container
+docker run -d \\
+    --name clinic-backend \\
+    --restart unless-stopped \\
+    -p 8080:8080 \\
+    -e SPRING_PROFILES_ACTIVE=production \\
+    -e DATABASE_URL=\${DATABASE_URL} \\
+    -e JWT_SECRET=\${JWT_SECRET} \\
+    ${BACKEND_IMAGE}:${BUILD_VERSION}
+
+echo "✅ Deployment completed successfully!"
+
+# Health check
+sleep 30
+curl -f http://localhost:8080/api/health || exit 1
+echo "✅ Health check passed!"
+EOF
+
+                            # Copy and execute deployment script
+                            scp -i \$SSH_KEY -o StrictHostKeyChecking=no deploy.sh \${EC2_USER}@\${EC2_HOST}:/tmp/
+                            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \${EC2_USER}@\${EC2_HOST} 'chmod +x /tmp/deploy.sh && /tmp/deploy.sh'
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Integration Tests') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    echo "🧪 Running integration tests..."
+                    
+                    // Run integration tests against deployed application
+                    sh '''
+                        echo "Integration tests placeholder"
+                        # Run API tests, smoke tests, etc.
+                    '''
+                }
+            }
+        }
+        
+        stage('Performance Tests') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "⚡ Running performance tests..."
+                    
+                    // Run performance tests
+                    sh '''
+                        echo "Performance tests placeholder"
+                        # Run JMeter, k6, or other performance testing tools
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                // Clean up Docker images
+                sh """
+                    docker rmi ${BACKEND_IMAGE}:${BUILD_VERSION} || true
+                    docker system prune -f || true
+                """
+                
+                // Archive logs
+                archiveArtifacts artifacts: 'backend/target/logs/**/*', allowEmptyArchive: true
+            }
+        }
+        
+        success {
+            script {
+                echo "✅ Pipeline completed successfully!"
+                
+                // Send success notification
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \\
+                        --data '{"text":"✅ Clinic Management System deployment successful! Build: ${BUILD_VERSION}"}' \\
+                        ${SLACK_WEBHOOK}
+                    """
+                }
+            }
+        }
+        
+        failure {
+            script {
+                echo "❌ Pipeline failed!"
+                
+                // Send failure notification
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \\
+                        --data '{"text":"❌ Clinic Management System deployment failed! Build: ${BUILD_VERSION}"}' \\
+                        ${SLACK_WEBHOOK}
+                    """
+                }
+            }
+        }
+        
+        unstable {
+            script {
+                echo "⚠️ Pipeline completed with warnings!"
+            }
+        }
+    }
+}

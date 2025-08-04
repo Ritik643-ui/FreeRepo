@@ -12,11 +12,11 @@
         <relativePath/>
     </parent>
     
-    <groupId>com.travelbuddy</groupId>
-    <artifactId>travelbuddy-backend</artifactId>
+    <groupId>com.clinic</groupId>
+    <artifactId>clinic-management-backend</artifactId>
     <version>1.0.0</version>
-    <name>TravelBuddy Backend</name>
-    <description>Travel booking platform backend API</description>
+    <name>Clinic Management Backend</name>
+    <description>Clinic management system for pets, owners, and consultation fees</description>
     
     <properties>
         <java.version>17</java.version>
@@ -180,6 +180,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>com.clinic.ClinicManagementApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -194,9 +195,9 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>
-                    <url>jdbc:postgresql://localhost:5432/travelbuddy</url>
-                    <user>travelbuddy_user</user>
-                    <password>travelbuddy_password</password>
+                    <url>jdbc:postgresql://localhost:5432/clinic_db</url>
+                    <user>clinic_user</user>
+                    <password>clinic_password</password>
                 </configuration>
             </plugin>
             
@@ -251,7 +252,7 @@
                 <artifactId>dockerfile-maven-plugin</artifactId>
                 <version>1.4.13</version>
                 <configuration>
-                    <repository>travelbuddy/backend</repository>
+                    <repository>clinic/backend</repository>
                     <tag>${project.version}</tag>
                 </configuration>
             </plugin>
@@ -287,4 +288,3 @@
         </profile>
     </profiles>
 </project>
-

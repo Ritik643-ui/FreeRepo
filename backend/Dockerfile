@@ -1,4 +1,4 @@
-# TravelBuddy Backend Dockerfile
+# Clinic Management Backend Dockerfile
 # Multi-stage build for Spring Boot application
 
 # Build stage
@@ -33,7 +33,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Create logs directory
-RUN mkdir -p /var/log/travelbuddy && chown -R appuser:appuser /var/log/travelbuddy
+RUN mkdir -p /var/log/clinic && chown -R appuser:appuser /var/log/clinic
 
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /app
@@ -95,4 +95,3 @@ ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMP
 
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
