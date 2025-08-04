@@ -2,7 +2,7 @@
 # Multi-stage build for Spring Boot application
 
 # Build stage
-FROM maven:3.9.5-openjdk-17-slim AS build
+FROM maven:3.9-openjdk-17-slim AS build
 
 # Set working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Runtime stage
-FROM openjdk:17-jdk-slim AS runtime
+FROM openjdk:17-jre-slim AS runtime
 
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
