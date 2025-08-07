@@ -54,10 +54,14 @@ const Home: React.FC = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-2xl font-bold text-primary-600 mb-2">4+</h3>
               <p className="text-gray-700">Projects Completed</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-2xl font-bold text-primary-600 mb-2">BIM</h3>
+              <p className="text-gray-700">Bachelor's Degree</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-2xl font-bold text-primary-600 mb-2">3</h3>
@@ -91,4 +95,3 @@ const Home: React.FC = () => {
 };
 
 export default Home;
-

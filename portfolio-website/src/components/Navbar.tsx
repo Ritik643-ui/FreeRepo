@@ -8,6 +8,7 @@ const Navbar: React.FC = () => {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Projects', path: '/projects' },
+    { name: 'Education', path: '/education' },
     { name: 'Certifications', path: '/certifications' },
     { name: 'About', path: '/about' },
     { name: 'Contact', path: '/contact' },
@@ -86,4 +87,3 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
-
