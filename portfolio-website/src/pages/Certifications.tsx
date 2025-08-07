@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Certification {
   title: string;
@@ -7,33 +7,45 @@ interface Certification {
   description: string;
   skills: string[];
   icon: string;
+  imageUrl?: string;
+  imageUrls?: string[]; // for Caltech multiple certs
 }
 
 const Certifications: React.FC = () => {
+  const [visibleCertIndex, setVisibleCertIndex] = useState<number | null>(null);
+
   const certifications: Certification[] = [
     {
       title: "C & C++ Programming",
       organization: "Broadway Infosys",
       duration: "68-hour course",
-      description: "Comprehensive programming course covering fundamental and advanced concepts in C and C++ programming languages, including data structures, algorithms, and object-oriented programming principles.",
+      description: "Comprehensive programming course covering fundamental and advanced concepts in C and C++ programming languages.",
       skills: ["C Programming", "C++ Programming", "Data Structures", "Algorithms", "Object-Oriented Programming", "Memory Management"],
-      icon: "💻"
+      icon: "💻",
+      imageUrl: "/certificates/broadwayC++.png"
     },
     {
       title: "Software Quality Assurance (QA)",
       organization: "Deerwalk Training Center",
       duration: "40-hour training",
-      description: "Intensive training program focused on software testing methodologies, quality assurance processes, test case design, and automated testing tools to ensure software reliability and performance.",
+      description: "Intensive training program focused on software testing methodologies and QA best practices.",
       skills: ["Manual Testing", "Test Case Design", "Bug Reporting", "QA Processes", "Software Testing Lifecycle", "Quality Metrics"],
-      icon: "🔍"
+      icon: "🔍",
+      imageUrl: "/certificates/deerwalkQA.png"
     },
     {
       title: "Caltech Coding Bootcamp",
-      organization: "Simplilearn + Caltech Center for Technology & Management Education",
-      duration: "Intensive Bootcamp",
-      description: "Comprehensive full-stack development bootcamp covering modern web technologies, software engineering practices, and industry-standard development methodologies in collaboration with Caltech.",
-      skills: ["Full-Stack Development", "Web Technologies", "Software Engineering", "Project Management", "Agile Methodologies", "Industry Best Practices"],
-      icon: "🎓"
+      organization: "Simplilearn + Caltech CTME",
+      duration: "Full-stack Bootcamp",
+      description: "End-to-end software engineering bootcamp including UI design, backend, APIs, and capstone project.",
+      skills: ["Full-Stack Development", "Web Technologies", "Software Engineering", "Agile", "Project Management", "Industry Best Practices"],
+      icon: "🎓",
+      imageUrls: [
+        "/certificates/caltech1-planning.png",
+        "/certificates/caltech2-backend.png",
+        "/certificates/caltech3-api.png",
+        "/certificates/caltech4-capstone.png"
+      ]
     }
   ];
 
@@ -42,12 +54,9 @@ const Certifications: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Certifications
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Certifications</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Continuous learning and professional development through structured courses and training programs 
-            that have enhanced my technical skills and industry knowledge.
+            Continuous learning and professional development through structured courses and training programs.
           </p>
         </div>
 
@@ -57,32 +66,55 @@ const Certifications: React.FC = () => {
             <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="p-8">
                 <div className="flex items-start space-x-6">
-                  {/* Icon */}
                   <div className="flex-shrink-0">
                     <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-2xl">
                       {cert.icon}
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
                       <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h3
+                          className="text-2xl font-bold text-gray-900 mb-2 cursor-pointer hover:text-primary-600 transition"
+                          onClick={() => setVisibleCertIndex(visibleCertIndex === index ? null : index)}
+                        >
                           {cert.title}
                         </h3>
-                        <p className="text-lg text-primary-600 font-semibold mb-1">
-                          {cert.organization}
-                        </p>
-                        <p className="text-sm text-gray-500 font-medium">
-                          {cert.duration}
-                        </p>
+                        <p className="text-lg text-primary-600 font-semibold mb-1">{cert.organization}</p>
+                        <p className="text-sm text-gray-500 font-medium">{cert.duration}</p>
                       </div>
                     </div>
 
-                    <p className="text-gray-700 mb-6 leading-relaxed">
-                      {cert.description}
-                    </p>
+                    <p className="text-gray-700 mb-6 leading-relaxed">{cert.description}</p>
+
+                    {/* Toggle Certificate Image(s) */}
+                    {visibleCertIndex === index && (
+                      <div className="my-6">
+                        {cert.imageUrl && (
+                          <div className="text-center">
+                            <img
+                              src={cert.imageUrl}
+                              alt={`${cert.title} Certificate`}
+                              className="rounded-lg shadow-lg max-w-2xl mx-auto"
+                            />
+                          </div>
+                        )}
+
+                        {cert.imageUrls && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {cert.imageUrls.map((url, idx) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`Caltech Certificate ${idx + 1}`}
+                                className="rounded-lg shadow-md w-full"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Skills */}
                     <div>
@@ -107,41 +139,9 @@ const Certifications: React.FC = () => {
           ))}
         </div>
 
-        {/* Additional Info */}
-        <div className="mt-16 bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Commitment to Continuous Learning
-            </h2>
-            <p className="text-gray-700 leading-relaxed max-w-3xl mx-auto mb-6">
-              These certifications represent my dedication to staying current with industry trends and 
-              continuously improving my technical skills. I believe in the importance of formal training 
-              combined with hands-on experience to deliver high-quality software solutions.
-            </p>
-            
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">108+</div>
-                <div className="text-gray-600">Hours of Training</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">3</div>
-                <div className="text-gray-600">Certifications Earned</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary-600 mb-2">15+</div>
-                <div className="text-gray-600">Skills Developed</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Call to Action */}
+        {/* CTA */}
         <div className="text-center mt-16">
-          <p className="text-lg text-gray-600 mb-6">
-            Interested in my technical background and experience?
-          </p>
+          <p className="text-lg text-gray-600 mb-6">Interested in my technical background and experience?</p>
           <div className="space-x-4">
             <a
               href="/projects"
