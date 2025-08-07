@@ -21,7 +21,11 @@ const About: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8 mb-12">
               <div className="flex-shrink-0">
                 <div className="w-32 h-32 bg-primary-100 rounded-full flex items-center justify-center">
-                  <span className="text-4xl font-bold text-primary-600">RS</span>
+                  <img
+      src="/profilepic/profilePic.png"
+      alt="Ritik Sharma"
+      className="object-cover w-full h-full"
+    />
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left">

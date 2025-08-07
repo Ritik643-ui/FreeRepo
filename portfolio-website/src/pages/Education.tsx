@@ -50,15 +50,15 @@ const Education: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-1">Duration</h4>
-                    <p className="text-gray-700">4 Years (8 Semesters)</p>
+                    <p className="text-gray-700">3.5 Years (7 Semesters)</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-1">Degree</h4>
-                    <p className="text-gray-700">Bachelor's Completed</p>
+                    <p className="text-gray-700">Bachelor's</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-1">Status</h4>
-                    <p className="text-gray-700">Graduated</p>
+                    <p className="text-gray-700">111 credit hours</p>
                   </div>
                 </div>
 

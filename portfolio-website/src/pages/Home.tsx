@@ -14,12 +14,16 @@ const Home: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
         <div className="text-center">
-          {/* Profile Image Placeholder */}
-          <div className="mb-8">
-            <div className="w-32 h-32 mx-auto bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-4xl font-bold text-primary-600">RS</span>
-            </div>
-          </div>
+         {/* Profile Image */}
+<div className="mb-8">
+  <div className="w-32 h-32 mx-auto rounded-full overflow-hidden shadow-lg border-4 border-primary-100">
+    <img
+      src="/profilepic/profilepic.png"
+      alt="Ritik Sharma"
+      className="object-cover w-full h-full"
+    />
+  </div>
+</div>
 
           {/* Name and Title */}
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
