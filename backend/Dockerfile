@@ -1,8 +1,11 @@
-# TravelBuddy Backend Dockerfile
+# Clinic Management Backend Dockerfile
 # Multi-stage build for Spring Boot application
 
 # Build stage
-FROM maven:3.9.5-openjdk-17-slim AS build
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+# Install Maven
+RUN apk add --no-cache maven
 
 # Set working directory
 WORKDIR /app
@@ -18,13 +21,13 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Runtime stage
-FROM openjdk:17-jdk-slim AS runtime
+FROM eclipse-temurin:17-jre-alpine AS runtime
 
 # Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 # Create app user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
 
 # Set working directory
 WORKDIR /app
@@ -33,7 +36,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Create logs directory
-RUN mkdir -p /var/log/travelbuddy && chown -R appuser:appuser /var/log/travelbuddy
+RUN mkdir -p /var/log/clinic && chown -R appuser:appuser /var/log/clinic
 
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /app
@@ -61,10 +64,7 @@ FROM runtime AS development
 USER root
 
 # Install development tools
-RUN apt-get update && apt-get install -y \
-    git \
-    vim \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git vim
 
 # Copy Maven wrapper and pom.xml for development
 COPY --from=build /app/pom.xml .
@@ -95,4 +95,3 @@ ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMP
 
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
